@@ -1,4 +1,5 @@
 import TodoApp from "./Components/TodoApp.tsx";
+import './styles.css'
 
 function App() {
 
