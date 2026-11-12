@@ -1,6 +1,7 @@
 import TodosContainer from "./TodosContainer.tsx";
-import {type ChangeEvent, type SubmitEvent, useState} from "react";
+import {type ChangeEvent, type SubmitEvent, useEffect, useState} from "react";
 import FormComponent from "./FormComponent.tsx";
+import axios from "axios";
 
 export interface TodoCardProps {
     id: string;
@@ -19,7 +20,6 @@ export interface TodosContainerProps {
     handleTodoCheck: (e: ChangeEvent<HTMLInputElement>, id: string) => void;
     handleDeleteTodo: (id: string) => void;
     handleEditTodo: (id: string) => void;
-
 }
 
 export interface FormComponentProps extends TodoCardProps {
@@ -42,28 +42,52 @@ export default function TodoApp() {
     const [todoList, setTodoList] = useState<TodoCardProps[]>([]);
 
     // Handlers
+
+    // 0. Handle getting all stored to do task data from local server
+    const handleGetData = async () => {
+        try {
+            await axios.get("http://localhost:3000/data").then((data) => {setTodoList(data.data)})
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    useEffect(() => {
+        handleGetData()
+    }, []);
+
     // 1. Handle the form input change to allow typing in the input
     const handleFormOnChange = (e: ChangeEvent<HTMLInputElement>) => {
         setTodo((prevTodo) => ({...prevTodo, [e.target.name]: e.target.value}))
     }
 
     // 2. Handle the onSubmit event to add the input to the TodoList
-    const handleOnSubmit = (e: SubmitEvent<HTMLFormElement>) => {
+    const handleOnSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault(); // Prevent the page from refreshing when form submits
-        if (todo.id === "") {
-            setTodoList((prevList) => [...prevList, {
-                id: crypto.randomUUID(),
-                title: todo.title,
+            if (todo.id === "") {
+                try {
+                    const newTodo: TodoCardProps = {
+                        id: crypto.randomUUID(),
+                        title: todo.title,
+                        checked: false,
+                    }
+                    setTodoList((prevList) => [...prevList, newTodo]);
+                    await axios.post("http://localhost:3000/data", newTodo)
+                } catch (error) {
+                    console.log(error);
+                }
+
+            } else { // Edit to do item, used for patching
+                setTodoList((prevList) => prevList.map((entry) => entry.id === todo.id ? {
+                    ...entry,
+                    title: todo.title
+                } : {...entry}))
+            }
+            setTodo({
+                id: "",
+                title: "",
                 checked: false,
-            }]);
-        } else {
-            setTodoList((prevList) => prevList.map((entry) => entry.id === todo.id ? {...entry, title: todo.title} : {...entry}))
-        }
-        setTodo({
-            id: "",
-            title: "",
-            checked: false,
-        });
+            });
     }
 
     // 3. Handle the Checkbox toggle when in TodoCard
@@ -72,8 +96,13 @@ export default function TodoApp() {
     }
 
     // 4. Handle Deleting an item from the array
-    const handleDeleteTodo = (id: string) => {
-        setTodoList((prevList) => prevList.filter((entry) => entry.id !== id));
+    const handleDeleteTodo = async (id: string) => {
+        try {
+            await axios.delete(`http://localhost:3000/data/${id}`);
+            setTodoList((prevList) => prevList.filter((entry) => entry.id !== id));
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     // 5. Handle editing the title of the Todo entry
