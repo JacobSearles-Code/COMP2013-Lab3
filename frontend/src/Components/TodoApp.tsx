@@ -78,10 +78,15 @@ export default function TodoApp() {
                 }
 
             } else { // Edit to do item, used for patching
-                setTodoList((prevList) => prevList.map((entry) => entry.id === todo.id ? {
-                    ...entry,
-                    title: todo.title
-                } : {...entry}))
+                try {
+                    await axios.patch(`http://localhost:3000/data/${todo.id}`, {...todo})
+                    setTodoList((prevList) => prevList.map((entry) => entry.id === todo.id ? {
+                        ...entry,
+                        title: todo.title
+                    } : {...entry}))
+                } catch(error) {
+                    console.log(error);
+                }
             }
             setTodo({
                 id: "",
@@ -91,8 +96,19 @@ export default function TodoApp() {
     }
 
     // 3. Handle the Checkbox toggle when in TodoCard
-    const handleTodoCheck = (e: ChangeEvent<HTMLInputElement>, id: string) => {
-        setTodoList((prevList) => prevList.map((entry) => entry.id === id ? {...entry, checked:e.target.checked} : {...entry}));
+    const handleTodoCheck = async (e: ChangeEvent<HTMLInputElement>, id: string) => {
+        try {
+            const selectedTodo = todoList.find((todo) => todo.id === id);
+            await axios.patch(`http://localhost:3000/data/${id}`, {...selectedTodo, checked: e.target.checked});
+            setTodoList((prevList) =>
+                prevList.map((entry) =>
+                    entry.id === id
+                        ? {...entry, checked: e.target.checked}
+                        : {...entry}));
+        } catch(error) {
+            console.log(error);
+        }
+        handleGetData();
     }
 
     // 4. Handle Deleting an item from the array

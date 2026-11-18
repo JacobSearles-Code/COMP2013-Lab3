@@ -70,3 +70,14 @@ server.delete("/data/:id", async (request, response) => {
         response.status(500).send(error);
     }
 })
+
+server.patch("/data/:id", async (request, response) => {
+    const { id } = request.params
+    const { title, checked } = request.body;
+    try {
+        await Task.findOneAndUpdate({id}, {title, checked});
+        response.status(201).send(`Task with id ${id} has been updated`)
+    } catch (error) {
+        response.status(500).send(error)
+    }
+})
